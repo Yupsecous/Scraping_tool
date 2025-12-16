@@ -13,7 +13,8 @@ from datetime import datetime
 import sys
 
 class DiscordLinkScraper:
-    def __init__(self, output_file='invite_link.txt', use_google_api=False, api_key=None, search_engine_id=None):
+    def __init__(self, output_file='invite_link.txt', use_google_api=False, api_key=None, search_engine_id=None,
+                 custom_keywords=None, custom_sites=None):
         self.output_file = output_file
         self.discord_links = set()
         self.session = requests.Session()
@@ -42,8 +43,18 @@ class DiscordLinkScraper:
             r'discord\.com/invite/[a-zA-Z0-9-]+',
         ]
         
-        # Keywords to search for
-        self.keywords = ['crypto', 'blockchain', 'nft', 'game', 'agent', 'defi', 'web3', 'metaverse', 'dao']
+        # Keywords to search for (use custom if provided)
+        if custom_keywords:
+            self.keywords = custom_keywords
+        else:
+            self.keywords = ['crypto', 'blockchain', 'nft', 'game', 'agent', 'defi', 'web3', 'metaverse', 'dao']
+        
+        # Sites to search (use custom if provided)
+        if custom_sites:
+            self.custom_sites = custom_sites
+        else:
+            self.custom_sites = ['x.com', 'medium.com', 'mirror.xyz', 'substack.com', 
+                                'hackernoon.com', 'coindesk.com', 'cointelegraph.com']
         
         # Load existing links
         self.load_existing_links()
@@ -240,14 +251,11 @@ class DiscordLinkScraper:
     
     def search_articles(self, query):
         """Search articles and blog posts for Discord links."""
-        article_sites = [
-            'site:medium.com',
-            'site:mirror.xyz',
-            'site:substack.com',
-            'site:hackernoon.com',
-            'site:coindesk.com',
-            'site:cointelegraph.com',
-        ]
+        # Use custom sites if provided
+        article_sites = []
+        for site in self.custom_sites:
+            if site != 'x.com':  # x.com is handled separately
+                article_sites.append(f'site:{site}')
         
         all_links = set()
         
@@ -261,48 +269,31 @@ class DiscordLinkScraper:
         return all_links
     
     def generate_search_queries(self):
-        """Generate various search queries."""
+        """Generate various search queries based on selected keywords and sites."""
         queries = []
         
-        # Base queries
-        base_queries = [
-            '"discord.gg/" crypto',
-            '"discord.gg/" blockchain',
-            '"discord.gg/" nft',
-            '"discord.gg/" game',
-            '"discord.gg/" agent',
-            '"discord.gg/" defi',
-            '"discord.gg/" web3',
-            '"discord.gg/" metaverse',
-            '"discord.gg/" dao',
-            '"discord.gg/" crypto blockchain nft',
-            '"discord.gg/" crypto game agent',
-        ]
+        # Generate base queries for each keyword
+        base_queries = []
+        for keyword in self.keywords:
+            base_queries.append(f'"discord.gg/" {keyword}')
         
-        # X.com specific queries
-        for query in base_queries:
-            queries.append(('x.com', f'site:x.com {query}'))
+        # Add combined keyword queries (2-3 keywords at a time)
+        if len(self.keywords) >= 2:
+            for i in range(len(self.keywords)):
+                for j in range(i+1, min(i+3, len(self.keywords))):
+                    keywords_combo = ' '.join(self.keywords[i:j+1])
+                    base_queries.append(f'"discord.gg/" {keywords_combo}')
         
-        # Article queries
-        for query in base_queries:
-            queries.append(('articles', query))
-        
-        # Combined keyword queries
-        combined_keywords = [
-            'crypto blockchain nft game agent "discord.gg/"',
-            'crypto trading "discord.gg/"',
-            'crypto community "discord.gg/"',
-            'crypto alpha "discord.gg/"',
-            'crypto signals "discord.gg/"',
-            'nft collection "discord.gg/"',
-            'crypto gaming "discord.gg/"',
-            'defi protocol "discord.gg/"',
-            'web3 project "discord.gg/"',
-        ]
-        
-        for query in combined_keywords:
-            queries.append(('x.com', f'site:x.com {query}'))
-            queries.append(('articles', query))
+        # Generate queries for each selected site
+        for site in self.custom_sites:
+            if site == 'x.com':
+                # X.com specific queries
+                for query in base_queries:
+                    queries.append(('x.com', f'site:x.com {query}'))
+            else:
+                # Article site queries
+                for query in base_queries:
+                    queries.append(('articles', f'site:{site} {query}'))
         
         return queries
     

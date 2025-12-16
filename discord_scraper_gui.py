@@ -17,7 +17,7 @@ class DiscordScraperGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Discord Invite Link Scraper")
-        self.root.geometry("800x700")
+        self.root.geometry("900x900")
         self.root.resizable(True, True)
         
         # Variables
@@ -71,9 +71,66 @@ class DiscordScraperGUI:
         ttk.Checkbutton(settings_frame, text="Use Google Custom Search API (100 free/day)", 
                        variable=self.use_api_var).grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(10, 0))
         
+        # Keywords Frame
+        keywords_frame = ttk.LabelFrame(main_frame, text="Keywords (Select keywords to search)", padding="10")
+        keywords_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Available keywords
+        available_keywords = ['crypto', 'AI', 'blockchain', 'chain', 'defi', 'dapp', 'game', 'agent', 'ecosystem', 'nft', 'coin', 'wallet']
+        self.keyword_vars = {}
+        
+        # Create checkboxes in a grid
+        for i, keyword in enumerate(available_keywords):
+            var = tk.BooleanVar(value=True)  # All selected by default
+            self.keyword_vars[keyword] = var
+            row = i // 4
+            col = i % 4
+            ttk.Checkbutton(keywords_frame, text=keyword, variable=var).grid(row=row, column=col, sticky=tk.W, padx=5, pady=2)
+        
+        # Select All / Deselect All buttons
+        button_frame = ttk.Frame(keywords_frame)
+        button_frame.grid(row=(len(available_keywords) // 4) + 1, column=0, columnspan=4, pady=(10, 0))
+        ttk.Button(button_frame, text="Select All", command=self.select_all_keywords).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Deselect All", command=self.deselect_all_keywords).pack(side=tk.LEFT, padx=5)
+        
+        # Sites Frame
+        sites_frame = ttk.LabelFrame(main_frame, text="Sites (Select sites to search)", padding="10")
+        sites_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Available sites
+        available_sites = {
+            'x.com': 'X.com (Twitter)',
+            'medium.com': 'Medium',
+            'mirror.xyz': 'Mirror',
+            'substack.com': 'Substack',
+            'hackernoon.com': 'HackerNoon',
+            'coindesk.com': 'CoinDesk',
+            'cointelegraph.com': 'CoinTelegraph'
+        }
+        self.site_vars = {}
+        
+        # Create checkboxes
+        for i, (site_key, site_label) in enumerate(available_sites.items()):
+            var = tk.BooleanVar(value=True if site_key == 'x.com' else False)  # x.com selected by default
+            self.site_vars[site_key] = var
+            row = i // 3
+            col = i % 3
+            ttk.Checkbutton(sites_frame, text=site_label, variable=var).grid(row=row, column=col, sticky=tk.W, padx=5, pady=2)
+        
+        # Select All / Deselect All buttons for sites
+        site_button_frame = ttk.Frame(sites_frame)
+        site_button_frame.grid(row=(len(available_sites) // 3) + 1, column=0, columnspan=3, pady=(10, 0))
+        ttk.Button(site_button_frame, text="Select All Sites", command=self.select_all_sites).pack(side=tk.LEFT, padx=5)
+        ttk.Button(site_button_frame, text="Deselect All Sites", command=self.deselect_all_sites).pack(side=tk.LEFT, padx=5)
+        
+        # Update row numbers for remaining elements
+        control_row = 4
+        progress_row = 5
+        status_row = 6
+        
         # Control Buttons Frame
         control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=2, column=0, columnspan=3, pady=(0, 10))
+        control_frame.grid(row=control_row, column=0, columnspan=3, pady=(0, 10))
         
         self.start_button = ttk.Button(control_frame, text="Start Scraping", command=self.start_scraping, width=20)
         self.start_button.pack(side=tk.LEFT, padx=(0, 10))
@@ -86,7 +143,7 @@ class DiscordScraperGUI:
         
         # Progress Frame
         progress_frame = ttk.LabelFrame(main_frame, text="Progress", padding="10")
-        progress_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        progress_frame.grid(row=progress_row, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         progress_frame.columnconfigure(0, weight=1)
         
         # Progress bar
@@ -117,10 +174,41 @@ class DiscordScraperGUI:
         # Status bar
         self.status_var = tk.StringVar(value="Ready")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E))
+        status_bar.grid(row=status_row, column=0, columnspan=3, sticky=(tk.W, tk.E))
+        
+        # Configure main frame row weights
+        main_frame.rowconfigure(progress_row, weight=1)
         
         # Load initial stats
         self.update_stats()
+    
+    def select_all_keywords(self):
+        """Select all keywords."""
+        for var in self.keyword_vars.values():
+            var.set(True)
+    
+    def deselect_all_keywords(self):
+        """Deselect all keywords."""
+        for var in self.keyword_vars.values():
+            var.set(False)
+    
+    def select_all_sites(self):
+        """Select all sites."""
+        for var in self.site_vars.values():
+            var.set(True)
+    
+    def deselect_all_sites(self):
+        """Deselect all sites."""
+        for var in self.site_vars.values():
+            var.set(False)
+    
+    def get_selected_keywords(self):
+        """Get list of selected keywords."""
+        return [keyword for keyword, var in self.keyword_vars.items() if var.get()]
+    
+    def get_selected_sites(self):
+        """Get list of selected sites."""
+        return [site for site, var in self.site_vars.items() if var.get()]
     
     def browse_output_file(self):
         """Browse for output file."""
@@ -193,6 +281,27 @@ class DiscordScraperGUI:
         
         use_api = self.use_api_var.get()
         
+        # Get selected keywords and sites
+        selected_keywords = self.get_selected_keywords()
+        selected_sites = self.get_selected_sites()
+        
+        # Validate selections
+        if not selected_keywords:
+            messagebox.showerror("No Keywords Selected", "Please select at least one keyword.")
+            self.is_running = False
+            self.start_button.config(state=tk.NORMAL)
+            self.stop_button.config(state=tk.DISABLED)
+            self.progress_bar.stop()
+            return
+        
+        if not selected_sites:
+            messagebox.showerror("No Sites Selected", "Please select at least one site.")
+            self.is_running = False
+            self.start_button.config(state=tk.NORMAL)
+            self.stop_button.config(state=tk.DISABLED)
+            self.progress_bar.stop()
+            return
+        
         # Load API config if needed
         api_key = None
         search_engine_id = None
@@ -210,14 +319,16 @@ class DiscordScraperGUI:
         
         # Start scraping in separate thread
         thread = threading.Thread(target=self.run_scraper, 
-                                 args=(output_file, max_searches, use_api, api_key, search_engine_id),
+                                 args=(output_file, max_searches, use_api, api_key, search_engine_id, 
+                                      selected_keywords, selected_sites),
                                  daemon=True)
         thread.start()
         
         self.log("Starting scraper...")
         self.update_progress("Scraping in progress...")
     
-    def run_scraper(self, output_file, max_searches, use_api, api_key, search_engine_id):
+    def run_scraper(self, output_file, max_searches, use_api, api_key, search_engine_id, 
+                   selected_keywords, selected_sites):
         """Run the scraper in a separate thread."""
         try:
             # Create scraper instance
@@ -225,11 +336,15 @@ class DiscordScraperGUI:
                 output_file=output_file,
                 use_google_api=use_api,
                 api_key=api_key,
-                search_engine_id=search_engine_id
+                search_engine_id=search_engine_id,
+                custom_keywords=selected_keywords,
+                custom_sites=selected_sites
             )
             
             initial_count = len(scraper.discord_links)
             self.output_queue.put(("log", f"Loaded {initial_count} existing links"))
+            self.output_queue.put(("log", f"Selected keywords: {', '.join(selected_keywords)}"))
+            self.output_queue.put(("log", f"Selected sites: {', '.join(selected_sites)}"))
             
             # Override print to capture output
             original_print = print
